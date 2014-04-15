@@ -157,6 +157,6 @@ if ($beef){
 }
 
 // Edit this if you want a redirect
-//header( 'refresh:1;url=http://www.google.co.uk/' );
+header( 'refresh:1;url=http://YOUR_DOMAIN/index.php?e='.$_GET["e"] );
 ?>
 
