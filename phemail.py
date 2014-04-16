@@ -174,7 +174,8 @@ class sendEmails:
                 if domain == email.split('@')[1]:
                     FROM, TO, MSG, pict = self.createMail(email)      
                     try:
-                        server.sendmail(FROM, TO, MSG)
+                        server.set_debuglevel(1)
+                        server.sendmail(FROM, TO, MSG)                       
                         print "Sent to "+email
                         time.sleep(delay)
                         emailSent.append(email)
@@ -427,7 +428,7 @@ if __name__ == "__main__":
     else:
         usage(version)
         sys.exit()
-    #test
+        
     if harvester.run : harvester.gatherEmails()
     if cloner.run : cloner.Page(); sys.exit()
         
