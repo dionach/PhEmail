@@ -349,8 +349,8 @@ def usage(version):
                 9- firstname_surname@example.com 
           """
     print "Examples: "+ os.path.basename(sys.argv[0]) +" -e emails.txt -f \"Bill Gates <bill.gates@example.com>\" -r \"Bill Gates <bill.gates@example.com>\" -s \"Hello\" -b body.txt"
-    print "          "+ os.path.basename(sys.argv[0]) +" -S dionach -d dionach.com -F 1 -p 12"
-    print "          "+ os.path.basename(sys.argv[0]) +" -c https://gmail.com"
+    print "          "+ os.path.basename(sys.argv[0]) +" -S example -d example.com -F 1 -p 12"
+    print "          "+ os.path.basename(sys.argv[0]) +" -c https://example.com"
 
 if __name__ == "__main__":
     # command line arguments / switches
