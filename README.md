@@ -1,9 +1,10 @@
 PhEmail
 ======
 
-PhEmail is a python open source phishing email tool that automates the process of sending phishing emails as part of a social engineering test. The main purpose of PhEmail is to send a bunch of phishing emails and prove who clicked on them without attempting to exploit the web browser or email client but collecting as much information as possible. Additionally, this tool can also be used to clone corporate login portals in order to steal login credentials.
+PhEmail is a python open source phishing email tool that automates the process of sending phishing emails as part of a social engineering test. The main purpose of PhEmail is to send a bunch of phishing emails and prove who clicked on them without attempting to exploit the web browser or email client but collecting as much information as possible. PhEmail comes with an engine to garther email addresses through LinkedIN, useful during the information gathering phase. Also, this tool supports Gmail authentication which is a valid option in case the target domain has blacklisted the source email or IP address. Finally, this tool can also be used to clone corporate login portals in order to steal login credentials.
 
 Further info:
+
 http://www.dionach.com/blog/phemailpy-another-social-engineering-tool
 http://www.dionach.com/blog/social-engineering-and-phishing-email-attacks
 
