@@ -11,7 +11,7 @@ Installation
 =====
 You can download the latest version of PhEmail by cloning the GitHub repository:
 
-	git clone https://github.com/m7x/PhEmail
+	git clone https://github.com/Dionach/PhEmail
 
 
 Usage
