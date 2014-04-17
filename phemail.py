@@ -24,8 +24,8 @@ version=0.13
 class sendEmails:
     
     def __init__(self):
-        self.FROM_ADDRESS = 'Bill Gates <bill.gates@microsoft.com>'
-        self.REPLY_TO_ADDRESS = 'Bill Gates <mm@ewww.co.uk>'
+        self.FROM_ADDRESS = 'Name Surname <name_surname@example.com>'
+        self.REPLY_TO_ADDRESS = 'Name Surname <Your_Email@example.com>'
         self.SUBJECT = 'Test'
         self.filemail = 'emails.txt'
         self.filebody = 'body.txt'
@@ -254,7 +254,7 @@ class harvestEmails:
         self.headers={'User-Agent':self.agent,}
         self.format = 0
         self.pages = 10
-        self.search = "dionach"
+        self.search = "example"
         self.domain = "example.com"
         self.verbose = False
         self.run = False
@@ -317,8 +317,8 @@ class cloneWebsite:
 def usage(version):
     print "PHishing EMAIL tool v"+str(version)+"\nUsage: " + os.path.basename(sys.argv[0]) + """ [-e <emails>] [-m <mail_server>] [-f <from_address>] [-r <replay_address>] [-s <subject>] [-b <body>]
           -e    emails: File containing list of emails (Default: emails.txt)
-          -f    from_address: Source email address displayed in FROM field of the email (Default: Bill Gates <bill.gates@example.com>)
-          -r    reply_address: Actual email address used to send the emails in case that people reply to the email (Default: Bill Gates <bill.gates@example.com>)
+          -f    from_address: Source email address displayed in FROM field of the email (Default: Name Surname <name_surname@example.com>)
+          -r    reply_address: Actual email address used to send the emails in case that people reply to the email (Default: Name Surname <name_surname@example.com>)
           -s    subject: Subject of the email (Default: Newsletter)
           -b    body: Body of the email (Default: body.txt)
           -p    pages: Specifies number of results pages searched (Default: 10 pages)
@@ -348,7 +348,7 @@ def usage(version):
                 8- surnamefirstname@example.com
                 9- firstname_surname@example.com 
           """
-    print "Examples: "+ os.path.basename(sys.argv[0]) +" -e emails.txt -f \"Bill Gates <bill.gates@example.com>\" -r \"Bill Gates <bill.gates@example.com>\" -s \"Hello\" -b body.txt"
+    print "Examples: "+ os.path.basename(sys.argv[0]) +" -e emails.txt -f \"Name Surname <name_surname@example.com>\" -r \"Name Surname <name_surname@example.com>\" -s \"Subject\" -b body.txt"
     print "          "+ os.path.basename(sys.argv[0]) +" -S example -d example.com -F 1 -p 12"
     print "          "+ os.path.basename(sys.argv[0]) +" -c https://example.com"
 

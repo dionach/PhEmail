@@ -19,8 +19,8 @@ Usage
 	PHishing EMAIL tool v0.13
 	Usage: phemail.py [-e <emails>] [-m <mail_server>] [-f <from_address>] [-r <replay_address>] [-s <subject>] [-b <body>]
 	          -e    emails: File containing list of emails (Default: emails.txt)
-	          -f    from_address: Source email address displayed in FROM field of the email (Default: Bill Gates <bill.gates@example.com>)
-	          -r    reply_address: Actual email address used to send the emails in case that people reply to the email (Default: Bill Gates <bill.gates@example.com>)
+	          -f    from_address: Source email address displayed in FROM field of the email (Default: Name Surname <name_surname@example.com>)
+	          -r    reply_address: Actual email address used to send the emails in case that people reply to the email (Default: Name Surname <name_surname@example.com>)
 	          -s    subject: Subject of the email (Default: Newsletter)
 	          -b    body: Body of the email (Default: body.txt)
 	          -p    pages: Specifies number of results pages searched (Default: 10 pages)
@@ -50,7 +50,7 @@ Usage
 	                8- surnamefirstname@example.com
 	                9- firstname_surname@example.com 
 	          
-	Examples: phemail.py -e emails.txt -f "Bill Gates <bill.gates@example.com>" -r "Bill Gates <bill.gates@example.com>" -s "Hello" -b body.txt
+	Examples: phemail.py -e emails.txt -f "Name Surname <name_surname@example.com>" -r "Name Surname <name_surname@example.com>" -s "Subject" -b body.txt
 	          phemail.py -S example -d example.com -F 1 -p 12
 	          phemail.py -c https://example.com
 
