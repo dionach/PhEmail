@@ -24,7 +24,7 @@ version=0.13
 class sendEmails:
     
     def __init__(self):
-        self.FROM_ADDRESS = 'Name Surname <name_surname@example.com>'
+        self.FROM_ADDRESS = None
         self.REPLY_TO_ADDRESS = 'Name Surname <Your_Email@example.com>'
         self.SUBJECT = 'Test'
         self.filemail = 'emails.txt'
@@ -161,14 +161,14 @@ class sendEmails:
                 print "SMTP server: "+MAIL_SERVER
                 server = smtplib.SMTP(MAIL_SERVER)
                 mx = [(10, MAIL_SERVER)]
-                server.helo
+                #server.helo
             else:
                 if Discovered[domain]:
                     mx = itertools.cycle(Discovered[domain])
                     mx_current = mx.next()[1]
                     print "SMTP server: "+mx_current
                     server = smtplib.SMTP(mx_current)
-                    server.helo
+                    #server.helo
                     
             for email in Emails:
                 if domain == email.split('@')[1]:
@@ -436,5 +436,7 @@ if __name__ == "__main__":
     if sender.google :
         sender.sendGMail()
     else:
+        if sender.FROM_ADDRESS == None : print "Error: from_address not specified"; exit()  
         sender.sendMail()
+              
     
