@@ -174,7 +174,8 @@ class sendEmails:
                 if domain == email.split('@')[1]:
                     FROM, TO, MSG, pict = self.createMail(email)      
                     try:
-                        server.set_debuglevel(1)
+                        # Uncomment this for debugging
+                        #server.set_debuglevel(1)
                         server.sendmail(FROM, TO, MSG)                       
                         print "Sent to "+email
                         time.sleep(delay)
