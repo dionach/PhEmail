@@ -309,7 +309,7 @@ class cloneWebsite:
         self.run = False
       
     def Page(self):
-        process = os.system("wget --no-check-certificate -c -k -O clone.html "+self.URL)
+        process = os.system("wget --no-check-certificate -c -k -O clone.html "+str(self.URL))
         if process == 0 :
             print "Cloned web page saved: clone.html"
         else :
