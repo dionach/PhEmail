@@ -193,7 +193,6 @@ class sendEmails:
                         server = smtplib.SMTP(mx_current) 
                         limit = 0  
 
-        self.removePictures(pict)
         if self.output: self.writeLog()
         print "PHishing URLs point to "+webserver
 
