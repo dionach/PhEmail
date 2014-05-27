@@ -168,30 +168,30 @@ class sendEmails:
                 server = smtplib.SMTP(mx_current)
                 #server.helo
                     
-            for email in Emails:
-                if domain == email.split('@')[1]:
-                    FROM, TO, MSG, pict = self.createMail(email)      
-                    try:
-                        # Uncomment this for debugging
-                        #server.set_debuglevel(1)
-                        server.sendmail(FROM, TO, MSG)                       
-                        print "Sent to "+email
-                        time.sleep(delay)
-                        emailSent.append(email)
-                    except Exception,e:
-                        print "Error: sending to "+email
-                        emailFail.append(email)
-                        if verbose : print e 
-                    limit = limit + 1
-                    if numLimit == limit:
-                        print "Connection closed to SMTP server: "+mx_current
-                        server.close()
-                        time.sleep(delay)
-                        mx_current = mx.next()[1]
-                        print "Domain: "+domain
-                        print "SMTP server: "+mx_current
-                        server = smtplib.SMTP(mx_current) 
-                        limit = 0  
+        for email in Emails:
+            if domain == email.split('@')[1]:
+                FROM, TO, MSG, pict = self.createMail(email)      
+                try:
+                    # Uncomment this for debugging
+                    #server.set_debuglevel(1)
+                    server.sendmail(FROM, TO, MSG)                       
+                    print "Sent to "+email
+                    time.sleep(delay)
+                    emailSent.append(email)
+                except Exception,e:
+                    print "Error: sending to "+email
+                    emailFail.append(email)
+                    if verbose : print e 
+                limit = limit + 1
+                if numLimit == limit:
+                    print "Connection closed to SMTP server: "+mx_current
+                    server.close()
+                    time.sleep(delay)
+                    mx_current = mx.next()[1]
+                    print "Domain: "+domain
+                    print "SMTP server: "+mx_current
+                    server = smtplib.SMTP(mx_current) 
+                    limit = 0  
 
         if self.output: self.writeLog()
         print "PHishing URLs point to "+webserver
