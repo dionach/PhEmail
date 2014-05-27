@@ -156,7 +156,7 @@ class sendEmails:
         if MAIL_SERVER :
             print "SMTP server: "+MAIL_SERVER
             server = smtplib.SMTP(MAIL_SERVER)
-            mx = [(10, MAIL_SERVER)]
+            mx = [(10, MAIL_SERVER), (10, MAIL_SERVER)]
             mx_current = mx.next()[1]
             #server.helo
         else: 
