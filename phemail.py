@@ -332,7 +332,6 @@ def usage(version):
           -m    mail_server: SMTP mail server to connect to
           -g    Google: Use a google account username:password
           -t    Time delay: Add deleay between each email (Default: 3 sec)
-          -R    Bunch of emails per time (Default: 10 emails)
           -L    webserverLog: Customise the name of the webserver log file (Default: Date time in format "%d_%m_%Y_%H_%M")
           -S    Search: query on Google
           -d    domain: of email addresses
@@ -419,10 +418,8 @@ if __name__ == "__main__":
                 sender.guser,sender.gpass = a.split(":")
             elif o == "-t":
                 sender.delay = int(a)
-            elif o == "-R":
-                sender.limit = int(a)
             elif o == "-n":
-                limit = int(a)
+                sender.limit = int(a)
             elif o == "-L":  
                 webserverLog = "".join([c for c in a if re.match(r'\w', c)]) 
             else:
