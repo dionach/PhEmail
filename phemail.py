@@ -152,46 +152,49 @@ class sendEmails:
         self.checkEmail(Emails)
         emailSent = self.emailSent
         emailFail = self.emailFail
+        Discovered = self.discoveredDomain(Emails)    
         
-        if MAIL_SERVER :
-            print "SMTP server: "+MAIL_SERVER
-            server = smtplib.SMTP(MAIL_SERVER)
-            mx = itertools.cycle([(10, MAIL_SERVER)])
-            mx_current = mx.next()[1]
-            #server.helo
-        else: 
-            Discovered = self.discoveredDomain(Emails)    
-            if Discovered[domain]:
-                mx = itertools.cycle(Discovered[domain])
+        for domain in Discovered:
+            print "Domain: "+domain
+            # check if the SMTP Server option is provided
+            if MAIL_SERVER :
+                print "SMTP server: "+MAIL_SERVER
+                server = smtplib.SMTP(MAIL_SERVER)
+                mx = itertools.cycle([(10, MAIL_SERVER)])
                 mx_current = mx.next()[1]
-                print "SMTP server: "+mx_current
-                server = smtplib.SMTP(mx_current)
                 #server.helo
-                    
-        for email in Emails:
-            if domain == email.split('@')[1]:
-                FROM, TO, MSG, pict = self.createMail(email)      
-                try:
-                    # Uncomment this for debugging
-                    #server.set_debuglevel(1)
-                    server.sendmail(FROM, TO, MSG)                       
-                    print "Sent to "+email
-                    time.sleep(delay)
-                    emailSent.append(email)
-                except Exception,e:
-                    print "Error: sending to "+email
-                    emailFail.append(email)
-                    if verbose : print e 
-                limit = limit + 1
-                if numLimit == limit:
-                    print "Connection closed to SMTP server: "+mx_current
-                    server.close()
-                    time.sleep(delay)
+            else:
+                if Discovered[domain]:
+                    mx = itertools.cycle(Discovered[domain])
                     mx_current = mx.next()[1]
-                    print "Domain: "+domain
                     print "SMTP server: "+mx_current
-                    server = smtplib.SMTP(mx_current) 
-                    limit = 0  
+                    server = smtplib.SMTP(mx_current)
+                    #server.helo
+                    
+            for email in Emails:
+                if domain == email.split('@')[1]:
+                    FROM, TO, MSG, pict = self.createMail(email)      
+                    try:
+                        # Uncomment this for debugging
+                        #server.set_debuglevel(1)
+                        server.sendmail(FROM, TO, MSG)                       
+                        print "Sent to "+email
+                        time.sleep(delay)
+                        emailSent.append(email)
+                    except Exception,e:
+                        print "Error: sending to "+email
+                        emailFail.append(email)
+                        if verbose : print e 
+                    limit = limit + 1
+                    if numLimit == limit:
+                        print "Connection closed to SMTP server: "+mx_current
+                        server.close()
+                        time.sleep(delay)
+                        mx_current = mx.next()[1]
+                        print "Domain: "+domain
+                        print "SMTP server: "+mx_current
+                        server = smtplib.SMTP(mx_current) 
+                        limit = 0  
 
         if self.output: self.writeLog()
         print "PHishing URLs point to "+webserver
