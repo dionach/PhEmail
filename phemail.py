@@ -54,7 +54,7 @@ class sendEmails:
             
     def checkEmail(self, emails):
         for email in emails:
-            if not re.match(r"([a-zA-Z\.\-\_1-9]+)\@([a-zA-Z\.\-\_1-9]+)\.([a-z]+)", email):
+            if not re.match(r"([a-zA-Z\.\-\_0-9]+)\@([a-zA-Z\.\-\_0-9]+)\.([a-z]+)", email):
                 print "Error: not a valid email "+email
                 print "Check "+self.filemail
                 exit()
@@ -176,7 +176,7 @@ class sendEmails:
                     FROM, TO, MSG, pict = self.createMail(email)      
                     try:
                         # Uncomment this for debugging
-                        #server.set_debuglevel(1)
+                        if verbose : server.set_debuglevel(1)
                         server.sendmail(FROM, TO, MSG)                       
                         print "Sent to "+email
                         time.sleep(delay)
